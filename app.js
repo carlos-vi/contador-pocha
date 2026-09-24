@@ -18,8 +18,103 @@
     } catch (e) { return null; }
   }
   function guardar() {
+    sincronizar();
     try { localStorage.setItem(CLAVE, JSON.stringify(S)); } catch (e) {}
   }
+
+  // Sincronización con la nube (opcional): local primero, la nube es la copia compartida.
+  // Solo se sincronizan las partidas; la pantalla actual y la configuración son de cada dispositivo.
+  const CLAVE_SUBIDAS = "pocha-subidas-";
+  let sesion = null;              // { uid, nombre } o null
+  let sync = "";                  // "", "subiendo", "ok", "error"
+  let remotas = null;             // últimas partidas recibidas de la nube
+  let remotasDeCache = true;      // si esa lista vino de la caché local (no fiable para detectar borrados)
+  let firmas = {};                // id -> contenido de la última versión sincronizada
+  let subidas = new Set();        // ids que ya existen en la nube para esta cuenta
+  const pendientes = new Set();   // ids con cambios por subir
+  const borradasSesion = new Set();
+  let temporizador = null;
+  let nubeIniciada = false;
+
+  const nube = () => (window.Nube && window.Nube.disponible ? window.Nube : null);
+  const firma = (p) => { const { actualizada, ...resto } = p; return JSON.stringify(resto); };
+  const textoSync = () => ({ subiendo: "Subiendo cambios…", ok: "Sincronizado", error: "Sin conexión con la nube" }[sync] || "Conectado");
+  const guardarSubidas = () => { try { localStorage.setItem(CLAVE_SUBIDAS + sesion.uid, JSON.stringify([...subidas])); } catch (e) {} };
+
+  function sincronizar() {
+    if (!sesion || !nube() || !remotas) return; // hasta recibir lo de la nube, para no pisar versiones más nuevas
+    let cambio = false;
+    for (const p of S.partidas) {
+      const f = firma(p);
+      if (firmas[p.id] === f && subidas.has(p.id)) continue;
+      if (firmas[p.id] !== f) p.actualizada = firmas[p.id] === undefined ? (p.actualizada || p.creada) : Date.now();
+      firmas[p.id] = f;
+      pendientes.add(p.id);
+      cambio = true;
+    }
+    if (cambio) {
+      sync = "subiendo";
+      clearTimeout(temporizador);
+      temporizador = setTimeout(subirPendientes, 1000);
+    }
+  }
+
+  async function subirPendientes() {
+    const nb = nube();
+    if (!nb || !sesion) return;
+    const ids = [...pendientes];
+    pendientes.clear();
+    try {
+      for (const id of ids) {
+        const p = S.partidas.find((x) => x.id === id);
+        if (p) { await nb.guardar(p); subidas.add(id); }
+      }
+      guardarSubidas();
+      sync = "ok";
+    } catch (e) {
+      ids.forEach((id) => pendientes.add(id));
+      sync = "error";
+    }
+    const el = document.getElementById("estado-nube");
+    if (el) el.textContent = textoSync();
+  }
+
+  // Mezcla lo recibido de la nube con las partidas locales: gana la más reciente por partida.
+  function fusionar() {
+    if (!sesion || !remotas) return;
+    const abierta = ["partida", "stats"].includes(S.vista) ? S.id : null; // no se pisa la que se está viendo
+    const enNube = new Set(remotas.map((r) => r.id));
+    for (const r of remotas) {
+      subidas.add(r.id);
+      if (borradasSesion.has(r.id)) continue;
+      const i = S.partidas.findIndex((p) => p.id === r.id);
+      if (i < 0) S.partidas.push(r);
+      else if (r.id !== abierta && (r.actualizada || 0) > (S.partidas[i].actualizada || 0)) S.partidas[i] = r;
+      else continue;
+      firmas[r.id] = firma(r);
+    }
+    // Una partida que ya se había subido y ya no está en la nube se borró desde otro dispositivo.
+    if (!remotasDeCache) S.partidas = S.partidas.filter((p) => p.id === abierta || !subidas.has(p.id) || enNube.has(p.id));
+    guardarSubidas();
+  }
+
+  function iniciarNube() {
+    const nb = nube();
+    if (!nb || nubeIniciada) return;
+    nubeIniciada = true;
+    nb.alSesion((u) => {
+      sesion = u;
+      remotas = null;
+      firmas = {};
+      pendientes.clear();
+      sync = "";
+      try { subidas = new Set(u ? JSON.parse(localStorage.getItem(CLAVE_SUBIDAS + u.uid)) || [] : []); } catch (e) { subidas = new Set(); }
+      if (u) nb.suscribir((lista, deCache) => { remotas = lista; remotasDeCache = deCache; sync = deCache ? sync : "ok"; repintar(); }, () => { sync = "error"; repintar(); });
+      repintar();
+    });
+  }
+  // No se repinta durante la configuración para no quitar el foco de los campos de nombre.
+  function repintar() { if (S.vista !== "config") render(); }
   const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const g = () => S.partidas.find((p) => p.id === S.id);
   const n = () => g().nombres.length;
@@ -93,6 +188,16 @@
     return new Date(ms).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
+  function tarjetaNube() {
+    if (!nube()) return "";
+    if (!sesion) {
+      return `<section class="tarjeta"><p class="sub">Entra con Google para ver tus partidas en todos tus dispositivos.</p>
+        <button class="btn claro" data-a="entrar">Entrar con Google</button></section>`;
+    }
+    return `<section class="tarjeta nube"><div><b>${esc(sesion.nombre)}</b><br><span class="sub" id="estado-nube">${textoSync()}</span></div>
+      <button class="btn-chico" data-a="salir">Salir</button></section>`;
+  }
+
   function vistaInicio() {
     const lista = S.partidas.slice().sort((a, b) => b.creada - a.creada).map((p) => {
       const tot = L.totales(p.rondas, p.nombres.length);
@@ -111,6 +216,7 @@
     }).join("");
     return `<section class="tarjeta"><h2>Partidas</h2>
       <button class="btn" data-a="nueva">Nueva partida</button></section>
+      ${tarjetaNube()}
       <section class="tarjeta"><h2>Partidas guardadas</h2>
       ${lista || '<p class="sub">Todavía no hay partidas guardadas.</p>'}</section>`;
   }
@@ -270,6 +376,7 @@
   }
 
   function render() {
+    fusionar();
     if (["partida", "stats"].includes(S.vista) && !g()) S.vista = "inicio";
     btnInicio.hidden = S.vista === "inicio";
     if (S.vista === "inicio") app.innerHTML = vistaInicio();
@@ -310,7 +417,18 @@
       case "borrar":
         if (!confirm("¿Borrar esta partida? No se puede deshacer.")) return;
         S.partidas = S.partidas.filter((p) => p.id !== d.id);
+        if (sesion && nube()) {
+          borradasSesion.add(d.id);
+          pendientes.delete(d.id);
+          nube().borrar(d.id).catch(() => { sync = "error"; });
+        }
         break;
+      case "entrar":
+        nube().entrar().catch((err) => {
+          if (err && !["auth/popup-closed-by-user", "auth/cancelled-popup-request"].includes(err.code)) alert("No se ha podido iniciar sesión.");
+        });
+        return;
+      case "salir": nube().salir(); return;
       case "menos": { const arr = g().borrador[d.c]; if (arr[+d.j] > 0) arr[+d.j]--; break; }
       case "mas": { const arr = g().borrador[d.c]; if (arr[+d.j] < cartas()) arr[+d.j]++; break; }
       case "a-bazas": g().paso = "bazas"; break;
@@ -330,4 +448,6 @@
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
   render();
+  window.addEventListener("nube-lista", iniciarNube);
+  iniciarNube();
 })();

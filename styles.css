@@ -82,3 +82,4 @@ td.cartas { font-weight: 700; }
 .btn-chico.mini { padding: 0 4px; font-size: .75rem; margin-left: 2px; }
 .corona { width: 22px; height: 15px; vertical-align: bottom; }
 tr.fcorona th { background: transparent; border: 0; padding: 0 8px 2px; text-align: center; }
+.tarjeta.nube { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
