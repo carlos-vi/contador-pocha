@@ -1,0 +1,13 @@
+{
+  "name": "Contador de Pocha",
+  "short_name": "Pocha",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1f5c3a",
+  "theme_color": "#1f5c3a",
+  "lang": "es",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
