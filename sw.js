@@ -1,5 +1,5 @@
-const CACHE = "pocha-v1";
-const ARCHIVOS = ["./", "index.html", "styles.css", "logic.js", "app.js", "icon.svg", "manifest.webmanifest"];
+const CACHE = "pocha-v2";
+const ARCHIVOS = ["./", "index.html", "styles.css", "logic.js", "app.js", "nube.js", "firebase-config.js", "icon.svg", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
@@ -12,7 +12,8 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
+  // Solo se gestionan los archivos de la propia app; Firebase y su SDK van directos a la red.
+  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then((r) => {
