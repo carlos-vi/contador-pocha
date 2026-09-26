@@ -4,7 +4,7 @@ Aplicación web para llevar la puntuación de la **Pocha**, el juego de cartas c
 
 **Pruébala aquí:** <https://carlos-vi.github.io/contador-pocha/>
 
-![Captura del marcador](docs/captura.png)
+![Captura del marcador](docs/marcador.png)
 
 ## Cómo se usa
 1. Pulsa **Nueva partida**, elige de 3 a 6 jugadores, escribe los nombres y decide quién reparte primero (o al azar).
