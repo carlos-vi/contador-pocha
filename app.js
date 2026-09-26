@@ -121,22 +121,12 @@
   const cartas = () => L.cartasPorRonda(n())[g().ronda];
   const totalRondas = (p) => L.cartasPorRonda(p.nombres.length).length;
 
-  // Identificador legible con la fecha y hora locales (p. ej. 2026-09-26_12-45-30); es también el nombre del documento en Firestore.
-  function nuevoId() {
-    const d = new Date();
-    const dos = (x) => String(x).padStart(2, "0");
-    const base = `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}_${dos(d.getHours())}-${dos(d.getMinutes())}-${dos(d.getSeconds())}`;
-    let id = base, k = 2;
-    while (S.partidas.some((p) => p.id === id)) id = `${base}_${k++}`;
-    return id;
-  }
-
   function crearPartida() {
     const { n: num, nombres } = S.cfg;
     const inicial = S.cfg.rep >= 0 && S.cfg.rep < num ? S.cfg.rep : Math.floor(Math.random() * num);
     const p = {
       repartidorInicial: inicial,
-      id: nuevoId(),
+      id: Date.now().toString(36),
       creada: Date.now(),
       nombres: nombres.slice(0, num).map((x, i) => x.trim() || "Jugador " + (i + 1)),
       rondas: [],
