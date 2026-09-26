@@ -84,4 +84,4 @@ td.cartas { font-weight: 700; }
 tr.fcorona th { background: transparent; border: 0; padding: 0 8px 2px; text-align: center; }
 .tarjeta.nube { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .paso button.tick { color: var(--rojo); border-color: var(--rojo); margin-left: 6px; }
-.paso button.tick.on { background: #1e6b32; color: #fff; }
+.paso button.tick.on { background: #1e6b32; color: #fff; border-color: #1e6b32; }

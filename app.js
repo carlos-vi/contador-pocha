@@ -179,7 +179,7 @@
   // Si se pasa `pedidas`, añade un tick que pone las bazas hechas igual a las pedidas.
   function stepper(campo, j, valor, max, pedidas) {
     const tick = pedidas === undefined ? "" :
-      `<button class="tick ${valor === pedidas ? "on" : ""}" data-a="tick" data-j="${j}" aria-label="ha hecho ${pedidas}, lo que pidió" title="Ha hecho lo que pidió">✓</button>`;
+      `<button class="tick ${valor === pedidas ? "on" : ""}" data-a="tick" data-j="${j}" aria-label="ha hecho ${pedidas}, lo que pidió" title="Ha hecho lo que pidió">${valor === pedidas ? "✓" : "✗"}</button>`;
     return `<div class="paso">
       <button data-a="menos" data-c="${campo}" data-j="${j}" aria-label="menos">−</button>
       <output>${valor}</output>
