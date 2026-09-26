@@ -176,11 +176,15 @@
     p.borrador = null;
   }
 
-  function stepper(campo, j, valor, max) {
+  // Si se pasa `pedidas`, añade un tick que pone las bazas hechas igual a las pedidas.
+  function stepper(campo, j, valor, max, pedidas) {
+    const tick = pedidas === undefined ? "" :
+      `<button class="tick ${valor === pedidas ? "on" : ""}" data-a="tick" data-j="${j}" aria-label="ha hecho ${pedidas}, lo que pidió" title="Ha hecho lo que pidió">✓</button>`;
     return `<div class="paso">
       <button data-a="menos" data-c="${campo}" data-j="${j}" aria-label="menos">−</button>
       <output>${valor}</output>
       <button data-a="mas" data-c="${campo}" data-j="${j}" aria-label="más" ${valor >= max ? "disabled" : ""}>+</button>
+      ${tick}
     </div>`;
   }
 
@@ -271,7 +275,7 @@
     const ok = suma === c;
     const filas = orden.map((j) => `<div class="fila">
       <div class="nombre">${esc(p.nombres[j])}<span class="etiq">pidió ${p.borrador.apuestas[j]}</span></div>
-      ${stepper("bazas", j, p.borrador.bazas[j], c)}</div>`).join("");
+      ${stepper("bazas", j, p.borrador.bazas[j], c, p.borrador.apuestas[j])}</div>`).join("");
     return `<section class="tarjeta">${cab}<p class="sub"><b>Paso 2:</b> bazas que hizo cada jugador</p>${filas}
       <div class="${ok ? "info" : "aviso"}">Bazas repartidas: ${suma} de ${c}</div>
       <div class="dos"><button class="btn claro" data-a="a-apuestas">Atrás</button>
@@ -431,6 +435,7 @@
       case "salir": nube().salir(); return;
       case "menos": { const arr = g().borrador[d.c]; if (arr[+d.j] > 0) arr[+d.j]--; break; }
       case "mas": { const arr = g().borrador[d.c]; if (arr[+d.j] < cartas()) arr[+d.j]++; break; }
+      case "tick": { const b = g().borrador; b.bazas[+d.j] = b.apuestas[+d.j]; break; }
       case "a-bazas": g().paso = "bazas"; break;
       case "a-apuestas": g().paso = "apuestas"; break;
       case "aceptar": aceptarRonda(); break;
