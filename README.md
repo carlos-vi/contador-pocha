@@ -69,3 +69,6 @@ Configuración, una sola vez (en <https://console.firebase.google.com>):
 4. Authentication > Settings > Authorized domains: añadir el dominio donde se publique la app. `localhost` ya viene incluido.
 5. Firestore Database: crear la base de datos en modo producción y pegar el contenido de `firestore.rules` en la pestaña Reglas.
 6. Recomendado: en Google Cloud Console, restringir la clave de API a los dominios de la app.
+
+## Licencia
+Proyecto publicado bajo la [licencia MIT](LICENSE).
